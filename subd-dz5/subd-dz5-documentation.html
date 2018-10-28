@@ -1,0 +1,176 @@
+<html><head><style>TD,TH{padding:3px;border:1px solid #000;}TH{text-align: left; border: 1px solid #000;}</style>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+</head><body><h1 id="d1_doc_gen_contents">Contents</h1>
+
+<ul><li><a href="#post"><b>post</b></a></li>
+    <li><a href="#picture"><b>picture</b></a></li>
+    <li><a href="#comment"><b>comment</b></a></li>
+    <li><a href="#like"><b>like</b></a></li>
+    <li><a href="#user"><b>user</b></a></li>
+    <li><a href="#user_viewed_post"><b>user_viewed_post</b></a></li>
+</ul><h1>Tables</h1>
+
+<h2 id="post"> Table: <code>post</code></h2>
+
+<h3>Description:</h3>
+
+<p></p>
+
+<h3>Columns:</h3>
+
+<table><thead><tr class="header"><th align="left">Column</th><th align="left">Data type</th><th align="left">Attribute</th><th align="left">Defualt</th><th align="left">Description</th></tr></thead><tbody>
+
+<tr><td><code>id</code></td><td>INT</td><td>PRIMARY, AUTO INCREMENTS, NOT NULL, UNIQUE</td><td> </td><td>Количество постов в блоге может быть большое. Оставляем INT.<br />Все значения уникальные<br /><br />FK in column <code>referenced_post_id</code> in table <a href="#post"><code>post</code></a>.</td></tr>
+<tr><td><code>post</code></td><td>TEXT</td><td>NOT NULL</td><td><code>'-'</code></td><td>Размер статьи - не более 65535 символов. Ставлю NOT NULL со значением по умолчанию<br />Кардинальность - сравнима с количеством записей в таблице</td></tr>
+<tr><td><code>dt</code></td><td>DATETIME</td><td>NOT NULL</td><td><code>2000/01/01</code></td><td>Дата и время статьи - оставляем DATETIME. Ставлю NOT NULL, задаю default value<br />Кардинальность - сравнима с количеством записей в таблице</td></tr>
+<tr><td><code>title</code></td><td>VARCHAR(255)</td><td>NOT NULL</td><td><code>'-'</code></td><td>Название статьи - не более 255 символов. Поставил NOT NULL DEFAULT='-'<br />Кардинальность - сравнима с количеством записей в таблице</td></tr>
+<tr><td><code>author_user_id</code></td><td>SMALLINT</td><td>NOT NULL</td><td> </td><td>Количество пользователей - вряд ли будет больше 65536. заменить INT -> SMALLINT<br />Кардинальность растет с увеличением активных авторов<br /><br />FK in column <code>id</code> in table <a href="#user"><code>user</code></a>.</td></tr>
+<tr><td><code>last_edit_dt</code></td><td>DATETIME</td><td>NOT NULL</td><td> </td><td>Оставить DATETIME. ставлю NOT NULL. Поле должно быть задано при вставке записи<br />Кардинальность - сравнима с количеством записей в таблице</td></tr>
+<tr><td><code>lead</code></td><td>VARCHAR(255)</td><td>NOT NULL</td><td><code>'-'</code></td><td>Поле "анонс статьи", макс. длина 255<br />Кардинальность - сравнима с количеством записей в таблице</td></tr>
+<tr><td><code>visible</code></td><td>TINYINT</td><td>NOT NULL</td><td> </td><td>статус статьи (BOOL)<br />NOT NULL - задать значение поля при вставке<br />кардинальность = 2</td></tr>
+<tr><td><code>referenced_post_id</code></td><td>INT</td><td>NOT NULL</td><td><code>0</code></td><td>ID статьи, которую репостит данная статья<br />одна статья может репостить только одну статью<br />NOT NULL - DEFAULT=0 (если статья не репостит ничего, то = 0)<br />кардинальность - O (количество записей в post)</td></tr>
+<tr><td><code>deleted</code></td><td>TINYINT</td><td>NOT NULL</td><td><code>0</code></td><td>признак удаления записи (BOOL)<br />NOT NULL, DEFAULT=0<br />кардинальность = 2</td></tr>
+</tbody></table>
+
+<h3>Indexes:</h3>
+
+<table><thead><tr class="header"><th align="left">Name</th><th align="left">Columns</th><th align="left">Data type</th><th align="left">Description</th></tr></thead><tbody>
+
+<tr><td>PRIMARY</td><td><code>id</code></td><td>PRIMARY</td><td> </td></tr>
+<tr><td>fk_post_user_id_idx</td><td><code>author_user_id</code></td><td>INDEX</td><td>индекс на foreign key - для связки таблиц в запросах</td></tr>
+<tr><td>id_UNIQUE</td><td><code>id</code></td><td>UNIQUE</td><td> </td></tr>
+</tbody></table><a href="#d1_doc_gen_contents">To contents</a>
+
+<h2 id="picture"> Table: <code>picture</code></h2>
+
+<h3>Description:</h3>
+
+<p></p>
+
+<h3>Columns:</h3>
+
+<table><thead><tr class="header"><th align="left">Column</th><th align="left">Data type</th><th align="left">Attribute</th><th align="left">Defualt</th><th align="left">Description</th></tr></thead><tbody>
+
+<tr><td><code>id</code></td><td>INT</td><td>PRIMARY, AUTO INCREMENTS, NOT NULL, UNIQUE</td><td> </td><td>Количество картинок в блоге может быть большое. Оставляем INT<br />Все значения уникальные<br /></td></tr>
+<tr><td><code>post_id</code></td><td>INT</td><td>NOT NULL</td><td> </td><td>Кардинальность - увеличивается по мере публикации новых статей<br /><br />FK in column <code>id</code> in table <a href="#post"><code>post</code></a>.</td></tr>
+<tr><td><code>file_name</code></td><td>VARCHAR(45)</td><td>NOT NULL</td><td><code>'-'</code></td><td>Избавляюсь от NULL. Ставлю default = '-'<br />Кардинальность - увеличивается по мере публикации статей</td></tr>
+<tr><td><code>caption</code></td><td>VARCHAR(64)</td><td>NOT NULL</td><td><code>'-'</code></td><td>Избавляюсь от NULL. Ставлю default = '-'<br />Кардинальность - увеличивается по мере публикации статей</td></tr>
+<tr><td><code>deleted</code></td><td>TINYINT</td><td>NOT NULL</td><td><code>0</code></td><td>признак удаления записи (BOOL)<br />NOT NULL, DEFAULT=0<br />кардинальность = 2</td></tr>
+</tbody></table>
+
+<h3>Indexes:</h3>
+
+<table><thead><tr class="header"><th align="left">Name</th><th align="left">Columns</th><th align="left">Data type</th><th align="left">Description</th></tr></thead><tbody>
+
+<tr><td>PRIMARY</td><td><code>id</code></td><td>PRIMARY</td><td> </td></tr>
+<tr><td>fk_picture_1_idx</td><td><code>post_id</code></td><td>INDEX</td><td>индекс на foreign key - для связки таблиц в запросах</td></tr>
+<tr><td>id_UNIQUE</td><td><code>id</code></td><td>UNIQUE</td><td> </td></tr>
+</tbody></table><a href="#d1_doc_gen_contents">To contents</a>
+
+<h2 id="comment"> Table: <code>comment</code></h2>
+
+<h3>Description:</h3>
+
+<p></p>
+
+<h3>Columns:</h3>
+
+<table><thead><tr class="header"><th align="left">Column</th><th align="left">Data type</th><th align="left">Attribute</th><th align="left">Defualt</th><th align="left">Description</th></tr></thead><tbody>
+
+<tr><td><code>id</code></td><td>INT</td><td>PRIMARY, AUTO INCREMENTS, NOT NULL, UNIQUE</td><td> </td><td>Количество комментариев в блоге может быть большое. Оставляем INT<br />Все значения уникальные</td></tr>
+<tr><td><code>post_id</code></td><td>INT</td><td>NOT NULL</td><td> </td><td>Кардинальность - увеличивается по мере публикации статей<br />Кардинальность близка к количеству постов<br /><br />FK in column <code>id</code> in table <a href="#post"><code>post</code></a>.</td></tr>
+<tr><td><code>comment_text</code></td><td>VARCHAR(128)</td><td>NOT NULL</td><td><code>'-'</code></td><td>Избавляюсь от NULL. Ставлю default = '-'<br />Кардинальность близка к количеству записей в таблице</td></tr>
+<tr><td><code>user_id</code></td><td>SMALLINT</td><td>NOT NULL</td><td> </td><td>Количество пользователей - вряд ли будет больше 65536. заменить INT -> SMALLINT<br />Кардинальность близка к количеству пользователей<br /><br />FK in column <code>id</code> in table <a href="#user"><code>user</code></a>.</td></tr>
+<tr><td><code>deleted</code></td><td>TINYINT</td><td>NOT NULL</td><td><code>0</code></td><td>признак удаления записи (BOOL)<br />NOT NULL, DEFAULT=0<br />кардинальность = 2</td></tr>
+</tbody></table>
+
+<h3>Indexes:</h3>
+
+<table><thead><tr class="header"><th align="left">Name</th><th align="left">Columns</th><th align="left">Data type</th><th align="left">Description</th></tr></thead><tbody>
+
+<tr><td>PRIMARY</td><td><code>id</code></td><td>PRIMARY</td><td> </td></tr>
+<tr><td>fk_comment_post_id_idx</td><td><code>post_id</code></td><td>INDEX</td><td>индекс на foreign key - для связки таблиц в запросах</td></tr>
+<tr><td>fk_comment_user_id_idx</td><td><code>user_id</code></td><td>INDEX</td><td>индекс на foreign key - для связки таблиц в запросах</td></tr>
+<tr><td>id_UNIQUE</td><td><code>id</code></td><td>UNIQUE</td><td> </td></tr>
+</tbody></table><a href="#d1_doc_gen_contents">To contents</a>
+
+<h2 id="like"> Table: <code>like</code></h2>
+
+<h3>Description:</h3>
+
+<p></p>
+
+<h3>Columns:</h3>
+
+<table><thead><tr class="header"><th align="left">Column</th><th align="left">Data type</th><th align="left">Attribute</th><th align="left">Defualt</th><th align="left">Description</th></tr></thead><tbody>
+
+<tr><td><code>id</code></td><td>INT</td><td>PRIMARY, AUTO INCREMENTS, NOT NULL, UNIQUE</td><td> </td><td>Количество лайков в блоге может быть большое. Оставляем INT<br />Все значения уникальные</td></tr>
+<tr><td><code>post_id</code></td><td>INT</td><td>NOT NULL</td><td> </td><td>Кардинальность - увеличивается по мере публикации статей<br /><br />FK in column <code>id</code> in table <a href="#post"><code>post</code></a>.</td></tr>
+<tr><td><code>user_id</code></td><td>SMALLINT</td><td>NOT NULL</td><td> </td><td>Количество пользователей - вряд ли будет больше 65536. заменить INT -> SMALLINT<br />Кардинальность растет с увеличением активных читателей<br /><br />FK in column <code>id</code> in table <a href="#user"><code>user</code></a>.</td></tr>
+<tr><td><code>deleted</code></td><td>TINYINT</td><td>NOT NULL</td><td><code>0</code></td><td>признак удаления записи (BOOL)<br />NOT NULL, DEFAULT=0<br />кардинальность = 2</td></tr>
+</tbody></table>
+
+<h3>Indexes:</h3>
+
+<table><thead><tr class="header"><th align="left">Name</th><th align="left">Columns</th><th align="left">Data type</th><th align="left">Description</th></tr></thead><tbody>
+
+<tr><td>PRIMARY</td><td><code>id</code></td><td>PRIMARY</td><td> </td></tr>
+<tr><td>fk_like_post_id_idx</td><td><code>post_id</code></td><td>INDEX</td><td>индекс на foreign key - для связки таблиц в запросах</td></tr>
+<tr><td>fk_like_user_id_idx</td><td><code>user_id</code></td><td>INDEX</td><td>индекс на foreign key - для связки таблиц в запросах</td></tr>
+<tr><td>id_UNIQUE</td><td><code>id</code></td><td>UNIQUE</td><td> </td></tr>
+</tbody></table><a href="#d1_doc_gen_contents">To contents</a>
+
+<h2 id="user"> Table: <code>user</code></h2>
+
+<h3>Description:</h3>
+
+<p></p>
+
+<h3>Columns:</h3>
+
+<table><thead><tr class="header"><th align="left">Column</th><th align="left">Data type</th><th align="left">Attribute</th><th align="left">Defualt</th><th align="left">Description</th></tr></thead><tbody>
+
+<tr><td><code>id</code></td><td>SMALLINT</td><td>PRIMARY, AUTO INCREMENTS, NOT NULL, UNIQUE</td><td> </td><td>Количество пользователей - вряд ли будет больше 65536. заменить INT -> SMALLINT<br />Все значения уникальные</td></tr>
+<tr><td><code>name</code></td><td>VARCHAR(128)</td><td>NOT NULL, UNIQUE</td><td> </td><td>Делаю NOT NULL. Поле должно быть заполнено при вставке<br />Ставлю UNIQUE - пользователи на форуме должны быть с разными именами<br />Кардинальность = количество записей в таблице</td></tr>
+<tr><td><code>password</code></td><td>VARCHAR(32)</td><td>NOT NULL</td><td> </td><td>пароль<br />NOT NULL - задать значение при вставки записи<br />кардинальность - близка к количеству записей в таблице</td></tr>
+<tr><td><code>blocked</code></td><td>TINYINT</td><td>NOT NULL</td><td><code>0</code></td><td>признак блокировки пользователя<br />NOT NULL - задать значение при вставке, по умолчанию 0<br />кардинальность = 2</td></tr>
+</tbody></table>
+
+<h3>Indexes:</h3>
+
+<table><thead><tr class="header"><th align="left">Name</th><th align="left">Columns</th><th align="left">Data type</th><th align="left">Description</th></tr></thead><tbody>
+
+<tr><td>PRIMARY</td><td><code>id</code></td><td>PRIMARY</td><td> </td></tr>
+<tr><td>name_UNIQUE</td><td><code>name</code></td><td>UNIQUE</td><td> </td></tr>
+<tr><td>id_UNIQUE</td><td><code>id</code></td><td>UNIQUE</td><td> </td></tr>
+</tbody></table><a href="#d1_doc_gen_contents">To contents</a>
+
+<h2 id="user_viewed_post"> Table: <code>user_viewed_post</code></h2>
+
+<h3>Description:</h3>
+
+<p></p>
+
+<h3>Columns:</h3>
+
+<table><thead><tr class="header"><th align="left">Column</th><th align="left">Data type</th><th align="left">Attribute</th><th align="left">Defualt</th><th align="left">Description</th></tr></thead><tbody>
+
+<tr><td><code>id</code></td><td>INT</td><td>PRIMARY, AUTO INCREMENTS, NOT NULL, UNIQUE</td><td> </td><td>Количество просмотров на весь блог может быть большое. Оставляем INT<br />Все значения уникальные</td></tr>
+<tr><td><code>post_id</code></td><td>INT</td><td>NOT NULL</td><td> </td><td>Кардинальность - O (количество статей*количество пользователей)<br /><br />FK in column <code>id</code> in table <a href="#post"><code>post</code></a>.</td></tr>
+<tr><td><code>user_id</code></td><td>SMALLINT</td><td>NOT NULL</td><td> </td><td>Количество пользователей - вряд ли будет больше 65536. заменить INT -> SMALLINT<br />Кардинальность растет с у величением количества пользователей<br /><br />FK in column <code>id</code> in table <a href="#user"><code>user</code></a>.</td></tr>
+<tr><td><code>views_no</code></td><td>SMALLINT</td><td>NOT NULL</td><td><code>0</code></td><td>Избавляюсь от NULL. Ставлю default = '0'<br />Кардинальность ограничена размером данных <=255<br />Устанавливаю флаг unsigned</td></tr>
+<tr><td><code>last_view_dt</code></td><td>DATETIME</td><td>NOT NULL</td><td> </td><td>Избавляюсь от NULL. Поле должо быть задано при вставке записи<br />Кардинальность близка к количеству записей в таблице</td></tr>
+<tr><td><code>deleted</code></td><td>TINYINT</td><td>NOT NULL</td><td><code>0</code></td><td>признак удаления записи (BOOL)<br />NOT NULL, DEFAULT=0<br />кардинальность = 2</td></tr>
+</tbody></table>
+
+<h3>Indexes:</h3>
+
+<table><thead><tr class="header"><th align="left">Name</th><th align="left">Columns</th><th align="left">Data type</th><th align="left">Description</th></tr></thead><tbody>
+
+<tr><td>PRIMARY</td><td><code>id</code></td><td>PRIMARY</td><td> </td></tr>
+<tr><td>fk_user_viewed_post_post_id_idx</td><td><code>post_id</code></td><td>INDEX</td><td>индекс на foreign key - для связки таблиц в запросах</td></tr>
+<tr><td>fk_user_viewed_post_user_id_idx</td><td><code>user_id</code></td><td>INDEX</td><td>индекс на foreign key - для связки таблиц в запросах</td></tr>
+<tr><td>id_UNIQUE</td><td><code>id</code></td><td>UNIQUE</td><td> </td></tr>
+</tbody></table><a href="#d1_doc_gen_contents">To contents</a>
+
+</body></html>
