@@ -16,3 +16,13 @@ UPDATE comment as c
 	ON u.id = c.user_id
 SET c.comment_text= CONCAT(c.comment_text, ' ', u.name) 
 WHERE u.name='user2' AND c.post_id='3';
+
+SELECT MAX(id) FROM comment;
+
+SELECT * FROM comment 
+WHERE id=(SELECT MAX(id) FROM comment);
+
+
+DELETE FROM comment
+WHERE id=11;
+

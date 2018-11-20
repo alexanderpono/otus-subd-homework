@@ -149,6 +149,7 @@ CREATE TABLE IF NOT EXISTS `blog_db`.`user_viewed_post` (
 ENGINE = InnoDB;
 
 CREATE UNIQUE INDEX `id_UNIQUE` ON `blog_db`.`user_viewed_post` (`id` ASC);
+CREATE UNIQUE INDEX `post_id_user_id_UNIQUE` ON `blog_db`.`user_viewed_post` (`post_id`, `user_id`);
 
 ALTER TABLE `blog_db`.`post` ADD CONSTRAINT `fk_post_user_id`
     FOREIGN KEY (`author_user_id`)
@@ -239,9 +240,9 @@ VALUES
 	(4, 2, 1, 2, '2018-11-10', FALSE),
 	(5, 2, 2, 4, '2018-11-11', FALSE),
 	(6, 2, 3, 10, '2018-11-10', FALSE),
-	(7, 2, 1, 2, '2018-11-10', FALSE),
-	(8, 2, 2, 4, '2018-11-11', FALSE),
-	(9, 2, 3, 10, '2018-11-10', FALSE)
+	(7, 3, 1, 2, '2018-11-10', FALSE),
+	(8, 3, 2, 4, '2018-11-11', FALSE),
+	(9, 3, 3, 10, '2018-11-10', FALSE)
 ;
 
 SET SQL_MODE=@OLD_SQL_MODE;
