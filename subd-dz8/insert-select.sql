@@ -11,3 +11,8 @@ UPDATE comment
 SET post_id = '3'
 WHERE id > 6;
 
+UPDATE comment as c 
+	JOIN `user` AS u
+	ON u.id = c.user_id
+SET c.comment_text= CONCAT(c.comment_text, ' ', u.name) 
+WHERE u.name='user2' AND c.post_id='3';
