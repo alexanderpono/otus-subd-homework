@@ -1,0 +1,11 @@
+CREATE TABLE aaa (
+id INT NOT NULL,
+fname VARCHAR(30),
+lname VARCHAR(30),
+hired DATE NOT NULL DEFAULT '1970-01-01',
+fired DATE NOT NULL DEFAULT '9999-12-31',
+jobcode INT,
+store_id INT 
+)
+PARTITION BY HASH(store_id)
+PARTITIONS 4;
