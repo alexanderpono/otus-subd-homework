@@ -1,0 +1,51 @@
+blog-db MySQL
+Доработана структура БД: 
+1) В таблице «user_viewed_post» добавлен составной индекс по полям post_id, user_id
+2) В таблице user тип поля "password" заменен с varchar(32) на BINARY(16) для хранения md5-хэшей в числовом виде и для устранения проблем с кодировками
+
+
+SQL-файл генерации БД
+init-db.sql
+
+1. запросы на вставку данных - см. тот же скрипт init-db.sql внизу
+
+
+2. запрос на Insert с использованием Select
+
+INSERT INTO comment(post_id, comment_text, user_id, deleted)
+SELECT post_id, comment_text, user_id, deleted 
+FROM comment
+WHERE post_id='1';
+
+
+3. Изменение данных UPDATE, UPDATE с использованием 
+JOIN
+
+UPDATE comment
+SET post_id = '2'
+WHERE id IN(3,4,5,6);
+
+UPDATE comment
+SET post_id = '3'
+WHERE id > 6;
+
+UPDATE comment as c 
+	JOIN `user` AS u
+	ON u.id = c.user_id
+SET c.comment_text= CONCAT(c.comment_text, ' ', u.name) 
+WHERE u.name='user2' AND c.post_id='3';
+
+
+4. Delete
+DELETE FROM comment
+WHERE id=5;
+
+
+5. Merge (MySQL)
+
+INSERT INTO user_viewed_post(post_id, user_id, views_no, last_view_dt)
+VALUES (3, 3, 1, CURDATE())
+ON DUPLICATE KEY UPDATE views_no = views_no + 1;
+
+
+
