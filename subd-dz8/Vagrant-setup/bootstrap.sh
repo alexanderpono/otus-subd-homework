@@ -99,7 +99,9 @@ CREATE DATABASE $APP_DB_NAME WITH OWNER=$APP_DB_USER
 CREATE TABLESPACE tablespace2 owner $APP_DB_USER LOCATION '/var/tablespace2';
 EOF
 
-sudo -u postgres psql myapp -f /mnt/bootstrap/init-db.sql
+sudo useradd -p myapp -s /bin/bash myapp
+sudo -u myapp psql -f /mnt/bootstrap/init-db.sql
+sudo -u myapp psql -f /mnt/bootstrap/checkNewReservationConflicts.sql
 
 # Tag the provision time:
 date > "$PROVISIONED_ON"
