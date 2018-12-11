@@ -167,6 +167,11 @@ END $$;
 
 insert into booking.reservation(room_id, client_id, start_date, end_date, adults_count, children_count, price, paid)
 values 
+	(1, 3, '2018-05-13', '2018-05-14', 2, 0, 36000, true)
+;
+
+insert into booking.reservation(room_id, client_id, start_date, end_date, adults_count, children_count, price, paid)
+values 
 	(1, 3, '2018-05-05', '2018-05-12', 2, 0, 36000, true)
 ;
 
