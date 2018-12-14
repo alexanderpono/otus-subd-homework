@@ -9,19 +9,32 @@
 #Для этой задачи не обязательно писать аналог без функций
 
 select 
-	ROW_NUMBER() over w as rank1, 
-	count(1) over w as count_rank, 
-	sakila.film.film_id as id, 
-	lead(sakila.film.film_id) over w as next_id, 
-	lag(sakila.film.film_id) over w as prev_id, 
-	lag(sakila.film.title, 2) over w as prev_name2, 
-	(title), 
-	(sakila.film.description) as descr, 
-	(sakila.film.release_year) as year,
-	(select count(1) from sakila.film) as count
-from sakila.film 
-window w as (partition by left(title, 1) order by left(title, 1))
-order by sakila.film.film_id
+	rank1, 
+	LAST_VALUE(rank1) over w as count_rank,
+	id,
+	next_id,
+	prev_id,
+	prev_name2,
+	title,
+	descr,
+	year,
+	count
+from (
+	select 
+		ROW_NUMBER() over w as rank1, 
+		sakila.film.film_id as id, 
+		lead(sakila.film.film_id) over w as next_id, 
+		lag(sakila.film.film_id) over w as prev_id, 
+		lag(sakila.film.title, 2) over w as prev_name2, 
+		(title), 
+		(sakila.film.description) as descr, 
+		(sakila.film.release_year) as year,
+		(select count(1) from sakila.film) as count
+	from sakila.film 
+	window w as (partition by left(title, 1) order by left(title, 1))
+	order by sakila.film.film_id
+	) as results
+	window w as (partition by left(title, 1) order by left(title, 1))
 ;
 
 
