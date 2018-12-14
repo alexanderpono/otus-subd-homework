@@ -36,18 +36,6 @@ BEGIN
    	into myResult
 	;
 	
-	
-    DROP TABLE IF EXISTS booking.tmp_table;
-	CREATE TABLE booking.tmp_table(varName varchar(255), val varchar(255));
-	insert into booking.tmp_table(varName, val) 
-	values
-		('new_start_date', new_start_date),
-		('new_end_date', new_end_date),
-		('new_start_inside_reservation', new_start_inside_reservation),
-		('new_end_inside_reservation', new_end_inside_reservation),
-		('myResult', myResult)
-	;
-
 	return myResult;
 	
 END;
