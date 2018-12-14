@@ -45,7 +45,12 @@ CREATE TABLE IF NOT EXISTS `blog_db`.`post` (
   `visible` TINYINT(1) NOT NULL COMMENT 'статус статьи (BOOL)\nNOT NULL - задать значение поля при вставке\nкардинальность = 2',
   `referenced_post_id` INT NOT NULL DEFAULT 0 COMMENT 'ID статьи, которую репостит данная статья\nодна статья может репостить только одну статью\nNOT NULL - DEFAULT=0 (если статья не репостит ничего, то = 0)\nкардинальность - O (количество записей в post)',
   `deleted` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'признак удаления записи (BOOL)\nNOT NULL, DEFAULT=0\nкардинальность = 2',
-  PRIMARY KEY (`id`))
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_post_referenced_post_id`
+    FOREIGN KEY (`referenced_post_id`)
+    REFERENCES `blog_db`.`post` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 CREATE UNIQUE INDEX `id_UNIQUE` ON `blog_db`.`post` (`id` ASC);
@@ -170,23 +175,23 @@ END $$
 CREATE PROCEDURE `del_from_post` (IN post_id INT) 
     BEGIN 
 	    START TRANSACTION;
-	        UPDATE `blog_db`.`picture` p SET `deleted` = '1' WHERE p.post_id = post_id;
-	        UPDATE `blog_db`.`user_viewed_post` uvp SET `deleted` = '1' WHERE uvp.post_id = post_id;
-	        UPDATE `blog_db`.`like` l SET `deleted` = '1' WHERE l.post_id = post_id;
-	        UPDATE `blog_db`.`comment` c SET `deleted` = '1' WHERE c.post_id = post_id;
-	        UPDATE `blog_db`.`post` p SET `deleted` = '1' WHERE p.id = post_id;
+	        UPDATE `blog_db`.`picture` SET `deleted` = '1' WHERE `post_id` = post_id;
+	        UPDATE `blog_db`.`user_viewed_post` SET `deleted` = '1' WHERE `post_id` = post_id;
+	        UPDATE `blog_db`.`like` SET `deleted` = '1' WHERE `post_id` = post_id;
+	        UPDATE `blog_db`.`comment` SET `deleted` = '1' WHERE `post_id` = post_id;
+	        UPDATE `blog_db`.`post` SET `deleted` = '1' WHERE ` id` = post_id;
        COMMIT;
     END $$
 
 
 CREATE PROCEDURE `del_from_picture` (IN picture_id INT) 
     BEGIN 
-        UPDATE `blog_db`.`picture` p SET `deleted` = '1' WHERE p.id = picture_id;
+        UPDATE `blog_db`.`picture` SET `deleted` = '1' WHERE `id` = picture_id;
     END $$
 
 CREATE PROCEDURE `del_from_comment` (IN comment_id INT) 
     BEGIN 
-        UPDATE `blog_db`.comment c SET `deleted` = '1' WHERE c.id = comment_id;
+        UPDATE `blog_db`.`picture` SET `deleted` = '1' WHERE `id` = comment_id;
     END $$
 
 DELIMITER ;
