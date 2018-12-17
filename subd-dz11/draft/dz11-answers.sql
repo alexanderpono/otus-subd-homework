@@ -78,11 +78,104 @@ inner join category c
 order by group_id, f.rating desc
 ;
 
+#старый запрос
+select 
+	ntile(50) over (order by f.film_id) group_id,
+	f.film_id,
+	f.title, 
+	f.rating, 
+	fc.category_id, 
+	c.name category_name
+from film f
+inner join film_category fc 
+	on fc.film_id = f.film_id
+inner join category c
+	on c.category_id = fc.category_id
+order by f.film_id
+;
+
 
 #3.По каждому работнику проката выведете последнего клиента, которому сотрудник сдал что-то в прокат
 #В результатах должны быть ид и фамилия сотрудника, ид и фамилия клиента, дата аренды
 #Для этого задания нужно написать 2 варианта получения таких данных - с аналитической функцией и без нее. 
 # - вариант без аналитической функции
+
+select 
+	s.staff_id as staff_id, 
+	s.last_name staff_last_name,
+	(
+		select distinct r4.rental_date 
+		from rental r4 
+		where r4.staff_id=s.staff_id
+		order by rental_date desc
+		limit 1
+	) as last_rent_time,
+	(
+		select r5.rental_id 
+		from rental r5 
+		where r5.staff_id=s.staff_id and r5.rental_date = last_rent_time
+		order by rental_date desc
+		limit 1
+	) as last_rent_id,
+	(
+		select r6.customer_id 
+		from rental r6 
+		where r6.staff_id=s.staff_id and r6.rental_date = last_rent_time
+		order by rental_date desc
+		limit 1
+	) as r6_customer_id,
+	(
+		select c.last_name 
+		from customer c 
+		where c.customer_id = r6_customer_id
+		limit 1
+	) as customer_last_name
+from sakila.staff s
+order by s.staff_id
+;
+
+
+select 
+	staff_id,
+	staff_last_name,
+	r6_customer_id customer_id,
+	c.last_name customer_last_name,
+	last_rent_time
+from (
+	select 
+		s.staff_id as staff_id, 
+		s.last_name staff_last_name,
+		(
+			select distinct r4.rental_date 
+			from rental r4 
+			where r4.staff_id=s.staff_id
+			order by rental_date desc
+			limit 1
+		) as last_rent_time,
+		(
+			select r5.rental_id 
+			from rental r5 
+			where r5.staff_id=s.staff_id and r5.rental_date = last_rent_time
+			order by rental_date desc
+			limit 1
+		) as last_rent_id,
+		(
+			select r6.customer_id 
+			from rental r6 
+			where r6.staff_id=s.staff_id and r6.rental_date = last_rent_time
+			order by rental_date desc
+			limit 1
+		) as r6_customer_id
+	from sakila.staff s
+	order by s.staff_id
+) as results
+inner join customer c 
+	on c.customer_id = r6_customer_id
+;
+
+
+
+#старая версия без аналитической функции
 select 
 	s.staff_id as staff_id, 
 	s.last_name staff_last_name,
@@ -106,7 +199,32 @@ inner join customer c
 order by staff_id, customer_id
 ;
 
+
+
 # вариант с аналитической функцией
+select * from (
+	select 
+		s.staff_id as staff_id, 
+		s.last_name staff_last_name,
+		r.customer_id as customer_id,
+		c.last_name customer_last_name,
+		r.rental_id,
+		r.rental_date,
+		rank() over (order by r.rental_date desc) as rank1
+	from staff s
+	inner join rental r
+		on 
+			r.staff_id = s.staff_id
+	inner join customer c 
+		on c.customer_id = r.customer_id
+	) as results
+where rank1 <= 1
+order by staff_id, customer_id
+;
+
+
+
+#старая версия варианта с аналитической функцией
 select * from (
 	select 
 		s.staff_id as staff_id, 
