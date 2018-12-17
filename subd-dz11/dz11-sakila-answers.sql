@@ -43,19 +43,20 @@ from (
 #сделайте группы фильмов для Василия чтобы в каждой группе были разные жанры и фильмы сначала были с низким рейтингом, а затем с более высоким
 #В результатах должен быть номер группы, ид фильма, название, и ид категории (жанра).
 
+#доработанный запрос по замечаниям:
 select 
-	ntile(50) over (order by f.film_id) group_id,
+	ntile(50) over (order by f.rating desc) group_id,
 	f.film_id,
 	f.title, 
 	f.rating, 
 	fc.category_id, 
 	c.name category_name
-from sakila.film f
-inner join sakila.film_category fc 
+from film f
+inner join film_category fc 
 	on fc.film_id = f.film_id
-inner join sakila.category c
+inner join category c
 	on c.category_id = fc.category_id
-order by f.film_id
+order by group_id, f.rating desc
 ;
 
 

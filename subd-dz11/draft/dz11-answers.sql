@@ -64,7 +64,7 @@ order by film.film_id
 #В результатах должен быть номер группы, ид фильма, название, и ид категории (жанра).
 
 select 
-	ntile(50) over (order by f.film_id) group_id,
+	ntile(50) over (order by f.rating desc) group_id,
 	f.film_id,
 	f.title, 
 	f.rating, 
@@ -75,7 +75,7 @@ inner join film_category fc
 	on fc.film_id = f.film_id
 inner join category c
 	on c.category_id = fc.category_id
-order by f.film_id
+order by group_id, f.rating desc
 ;
 
 
