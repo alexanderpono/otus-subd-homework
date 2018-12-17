@@ -9,10 +9,6 @@ DECLARE
 	new_end_inside_reservation integer;
 	myResult boolean;
 BEGIN
-    DROP TABLE IF EXISTS booking.tmp_table;
-    DROP TABLE IF EXISTS booking.tmp_table2;
-	CREATE TABLE booking.tmp_table(varName varchar(255), val varchar(255));
-
 	SELECT id 
 	from booking.reservation
 	WHERE 
