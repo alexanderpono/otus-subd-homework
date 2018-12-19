@@ -100,6 +100,7 @@ order by f.film_id
 #Для этого задания нужно написать 2 варианта получения таких данных - с аналитической функцией и без нее. 
 # - вариант без аналитической функции
 
+#версия без аналитической функции - новый вариант #1 (на одного сотрудника отображать только одного последнего клиента)
 select 
 	s.staff_id as staff_id, 
 	s.last_name staff_last_name,
@@ -110,13 +111,6 @@ select
 		order by rental_date desc
 		limit 1
 	) as last_rent_time,
-	(
-		select r5.rental_id 
-		from rental r5 
-		where r5.staff_id=s.staff_id and r5.rental_date = last_rent_time
-		order by rental_date desc
-		limit 1
-	) as last_rent_id,
 	(
 		select r6.customer_id 
 		from rental r6 
@@ -135,6 +129,7 @@ order by s.staff_id
 ;
 
 
+#версия без аналитической функции - новый вариант #2 (на одного сотрудника отображать только одного последнего клиента)
 select 
 	staff_id,
 	staff_last_name,
@@ -147,29 +142,22 @@ from (
 		s.last_name staff_last_name,
 		(
 			select distinct r4.rental_date 
-			from rental r4 
+			from sakila.rental r4 
 			where r4.staff_id=s.staff_id
 			order by rental_date desc
 			limit 1
 		) as last_rent_time,
 		(
-			select r5.rental_id 
-			from rental r5 
-			where r5.staff_id=s.staff_id and r5.rental_date = last_rent_time
-			order by rental_date desc
-			limit 1
-		) as last_rent_id,
-		(
 			select r6.customer_id 
-			from rental r6 
+			from sakila.rental r6 
 			where r6.staff_id=s.staff_id and r6.rental_date = last_rent_time
-			order by rental_date desc
+			order by rental_date desc, r6.customer_id
 			limit 1
 		) as r6_customer_id
 	from sakila.staff s
 	order by s.staff_id
 ) as results
-inner join customer c 
+inner join sakila.customer c 
 	on c.customer_id = r6_customer_id
 ;
 
@@ -201,26 +189,47 @@ order by staff_id, customer_id
 
 
 
-# вариант с аналитической функцией
-select * from (
+#3. вариант с аналитической функцией
+select  
+	staff_recent_customer.staff_id,
+	staff_recent_customer.staff_last_name,
+	staff_recent_customer.customer_id,
+	staff_recent_customer.customer_last_name,
+	staff_recent_customer.rental_date as last_rent_time
+from(
+	with staff_recent_customers as (
+		select * from (
+			select 
+				s.staff_id as staff_id, 
+				s.last_name staff_last_name,
+				r.customer_id as customer_id,
+				c.last_name customer_last_name,
+				r.rental_id,
+				r.rental_date,
+				rank() over (order by r.rental_date desc) as rank1
+			from sakila.staff s
+			inner join sakila.rental r
+				on 
+					r.staff_id = s.staff_id
+			inner join sakila.customer c 
+				on c.customer_id = r.customer_id
+			) as results
+		where rank1 <= 1
+		order by staff_id, customer_id
+	)
 	select 
-		s.staff_id as staff_id, 
-		s.last_name staff_last_name,
-		r.customer_id as customer_id,
-		c.last_name customer_last_name,
-		r.rental_id,
-		r.rental_date,
-		rank() over (order by r.rental_date desc) as rank1
-	from staff s
-	inner join rental r
-		on 
-			r.staff_id = s.staff_id
-	inner join customer c 
-		on c.customer_id = r.customer_id
-	) as results
-where rank1 <= 1
-order by staff_id, customer_id
+		staff_id,
+		staff_last_name,
+		customer_id,
+		customer_last_name,
+		rental_id,
+		rental_date,
+		ROW_NUMBER() over (PARTITION by staff_last_name order by customer_id) as rank2
+	from staff_recent_customers
+) as staff_recent_customer
+where rank2 <= 1
 ;
+
 
 
 
@@ -234,11 +243,11 @@ select * from (
 		r.rental_id,
 		r.rental_date,
 		rank() over (order by r.rental_date desc) as rank1
-	from staff s
-	inner join rental r
+	from sakila.staff s
+	inner join sakila.rental r
 		on 
 			r.staff_id = s.staff_id
-	inner join customer c 
+	inner join sakila.customer c 
 		on c.customer_id = r.customer_id
 	) as results
 where rank1 <= 1
@@ -261,27 +270,27 @@ select
 	i.inventory_id,
 	r.rental_id,
 	r.rental_date as rental_date
-from actor a
-inner join film_actor fa
+from sakila.actor a
+inner join sakila.film_actor fa
 	on fa.actor_id = a.actor_id
-inner join film f
+inner join sakila.film f
 	on f.film_id = fa.film_id
-inner join inventory i
+inner join sakila.inventory i
 	on i.film_id = fa.film_id
-inner join rental r
+inner join sakila.rental r
 	on r.inventory_id = i.inventory_id
 where 
 	r.rental_date = (
 		select DISTINCT 
 			r1.rental_date as rental_date
-		from actor a1
-		inner join film_actor fa1
+		from sakila.actor a1
+		inner join sakila.film_actor fa1
 			on fa1.actor_id = a1.actor_id
-		inner join film f1
+		inner join sakila.film f1
 			on f1.film_id = fa1.film_id
-		inner join inventory i1
+		inner join sakila.inventory i1
 			on i1.film_id = fa1.film_id
-		inner join rental r1
+		inner join sakila.rental r1
 			on r1.inventory_id = i1.inventory_id
 		where a1.actor_id = a.actor_id
 		order by rental_date desc
@@ -302,14 +311,14 @@ select * from (
 		r.rental_id,
 		r.rental_date as rental_date,
 		rank() over (partition by a.actor_id order by r.rental_date desc) as rank1
-	from actor a
-	left outer join film_actor fa
+	from sakila.actor a
+	left outer join sakila.film_actor fa
 		on fa.actor_id = a.actor_id
-	left outer join film f
+	left outer join sakila.film f
 		on f.film_id = fa.film_id
-	left outer join inventory i
+	left outer join sakila.inventory i
 		on i.film_id = fa.film_id
-	left outer join rental r
+	left outer join sakila.rental r
 		on r.inventory_id = i.inventory_id
 ) as result1	
 where rank1 <= 1

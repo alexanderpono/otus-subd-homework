@@ -458,3 +458,217 @@ order by actor_id1
 ;
 
 
+select distinct r4.rental_date 
+from rental r4 
+where r4.staff_id=s.staff_id
+order by rental_date desc
+limit 1
+;
+
+select 
+	dense_rank() over (order by r1.rental_date desc) as rn,
+	first_value(rental_id) over (partition by r1.rental_date) as first_val,
+	lag(rental_id) over (partition by r1.rental_date) as lag1,
+	r1.*  
+from sakila.rental r1
+order by rn
+;
+
+
+select count(1)
+from sakila.rental
+;
+
+with rental2 as (
+	select 
+		rental1.rental_id, 
+		rental1.staff_id, 
+		rental1.rental_date, 
+		rental1.inventory_id,
+		rental1.customer_id
+	from (
+		select
+			r.rental_id,
+			r.staff_id,
+			r.rental_date, 
+			r.inventory_id,
+			r.customer_id,
+			ROW_NUMBER() over (partition by r.staff_id, r.rental_date order by r.staff_id, r.rental_date desc) as rn
+		from sakila.rental r
+		order by r.rental_date desc, rn, r.staff_id
+	) as rental1
+	where rn <= 1
+	order by rental1.rental_date desc
+)
+select * from rental2;
+
+#по каждому фильму - дата последнего просмотра
+with film_last_view_date as (
+	#по каждому инвентарному номеру - дату последнего просмотра
+	with rental2 as (
+		select 
+			rental1.rental_id, 
+			rental1.staff_id, 
+			rental1.rental_date, 
+			rental1.inventory_id,
+			rental1.customer_id
+		from (
+			select
+				r.rental_id,
+				r.staff_id,
+				r.rental_date, 
+				r.inventory_id,
+				r.customer_id,
+				ROW_NUMBER() over (partition by r.staff_id, r.rental_date order by r.staff_id, r.rental_date desc) as rn
+			from sakila.rental r
+			order by r.rental_date desc, rn, r.staff_id
+		) as rental1
+		where rn <= 1
+		order by rental1.rental_date desc
+	)
+	select 
+		r.rental_id,
+		r.staff_id,
+		r.rental_date,
+		r.inventory_id,
+		r.customer_id,
+		i.film_id,
+		f.title as film_title
+	from rental2 r
+	inner join sakila.inventory i
+		on i.inventory_id = r.inventory_id
+	inner join sakila.film f
+		on f.film_id = i.film_id
+)
+select * 
+from film_last_view_date
+;
+
+
+
+
+
+
+
+#неправильно
+with rental2 as (
+	select 
+		rental1.rental_id, 
+		rental1.staff_id, 
+		rental1.rental_date, 
+		rental1.inventory_id,
+		rental1.customer_id
+	from (
+		select
+			r.rental_id,
+			r.staff_id,
+			r.rental_date, 
+			r.inventory_id,
+			r.customer_id,
+			ROW_NUMBER() over (partition by r.staff_id, r.rental_date order by r.staff_id, r.rental_date desc) as rn
+		from sakila.rental r
+		order by r.rental_date desc, rn, r.staff_id
+	) as rental1
+	where rn <= 1
+	order by rental1.rental_date desc
+)
+select 
+	actor_id1,
+	actor_first_name,  
+	actor_last_name,  
+	film_id,  
+	film_title,  
+	last_rental_date,
+	rank1
+from (
+	select 
+		a.actor_id as actor_id1, 
+		a.first_name as actor_first_name, 
+		a.last_name as actor_last_name, 
+		fa.film_id, 
+		f.title as film_title,
+		i.inventory_id,
+		r.rental_id,
+		r.rental_date as last_rental_date,
+		rank() over (partition by a.actor_id order by r.rental_date desc) as rank1
+	from sakila.actor a
+	left outer join sakila.film_actor fa
+		on fa.actor_id = a.actor_id
+	left outer join sakila.film f
+		on f.film_id = fa.film_id
+	left outer join sakila.inventory i
+		on i.film_id = fa.film_id
+	left outer join rental2 r
+		on r.inventory_id = i.inventory_id
+) as result1
+where rank1 <= 10
+;
+
+order by actor_id1
+
+select *
+from sakila.rental r
+where 
+;
+
+
+select distinct
+	r.staff_id,
+	r.rental_date 
+from sakila.rental r
+inner join sakila.rental r2
+	on r.rental_id = r2.rental_id
+order by r.rental_date desc, r.staff_id
+;
+
+
+#4 - вариант с аналитической функцией. Вывести для каждого актера только один фильм, посмотренный последним
+select  
+	actor_id1, 
+	actor_first_name,
+	actor_last_name,
+	film_id,
+	film_title,
+	rental_date
+from (
+	with actor_last_views as (
+	select * from (
+		select 
+			a.actor_id as actor_id1, 
+			a.first_name as actor_first_name, 
+			a.last_name as actor_last_name, 
+			fa.film_id, 
+			f.title as film_title,
+			i.inventory_id,
+			r.rental_id,
+			r.rental_date as rental_date,
+			rank() over (partition by a.actor_id order by r.rental_date desc) as rank1
+		from sakila.actor a
+		left outer join sakila.film_actor fa
+			on fa.actor_id = a.actor_id
+		left outer join sakila.film f
+			on f.film_id = fa.film_id
+		left outer join sakila.inventory i
+			on i.film_id = fa.film_id
+		left outer join sakila.rental r
+			on r.inventory_id = i.inventory_id
+	) as result1	
+	where rank1 <= 1
+	order by actor_id1
+	)
+	select 
+		actor_id1, 
+		actor_first_name,
+		actor_last_name,
+		film_id,
+		film_title,
+		rental_date,
+		ROW_NUMBER() over (partition by actor_first_name, actor_last_name order by actor_first_name, actor_last_name) as rank2
+	from actor_last_views
+) as actor_last_views_with_rank
+where rank2 <= 1
+;
+
+
+
+
