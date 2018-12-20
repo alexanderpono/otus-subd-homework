@@ -70,10 +70,10 @@ select
 	f.rating, 
 	fc.category_id, 
 	c.name category_name
-from film f
-inner join film_category fc 
+from sakila.film f
+inner join sakila.film_category fc 
 	on fc.film_id = f.film_id
-inner join category c
+inner join sakila.category c
 	on c.category_id = fc.category_id
 order by group_id, f.rating desc
 ;
@@ -106,21 +106,21 @@ select
 	s.last_name staff_last_name,
 	(
 		select distinct r4.rental_date 
-		from rental r4 
+		from sakila.rental r4 
 		where r4.staff_id=s.staff_id
 		order by rental_date desc
 		limit 1
 	) as last_rent_time,
 	(
 		select r6.customer_id 
-		from rental r6 
+		from sakila.rental r6 
 		where r6.staff_id=s.staff_id and r6.rental_date = last_rent_time
-		order by rental_date desc
+		order by rental_date desc, r6.customer_id
 		limit 1
 	) as r6_customer_id,
 	(
 		select c.last_name 
-		from customer c 
+		from sakila.customer c 
 		where c.customer_id = r6_customer_id
 		limit 1
 	) as customer_last_name
@@ -133,9 +133,9 @@ order by s.staff_id
 select 
 	staff_id,
 	staff_last_name,
-	r6_customer_id customer_id,
-	c.last_name customer_last_name,
-	last_rent_time
+	last_rent_time,
+	r6_customer_id,
+	c.last_name customer_last_name
 from (
 	select 
 		s.staff_id as staff_id, 
@@ -193,9 +193,9 @@ order by staff_id, customer_id
 select  
 	staff_recent_customer.staff_id,
 	staff_recent_customer.staff_last_name,
-	staff_recent_customer.customer_id,
-	staff_recent_customer.customer_last_name,
-	staff_recent_customer.rental_date as last_rent_time
+	staff_recent_customer.rental_date as last_rent_time,
+	staff_recent_customer.customer_id r6_customer_id,
+	staff_recent_customer.customer_last_name
 from(
 	with staff_recent_customers as (
 		select * from (
@@ -260,7 +260,7 @@ order by staff_id, customer_id
 #Для этого задания нужно написать 2 варианта получения таких данных - с аналитической функцией и без нее.
 #Данные в обоих запросах (с оконными функциями и без) должны совпадать. 
 
-#4 - вариант без аналитической функции
+#4 - вариант без аналитической функции. Для каждого актера выводится несколько фильмов, у которых одинаковые самые последние даты просмотра
 select 
 	a.actor_id as actor_id1, 
 	a.first_name as actor_first_name, 
@@ -299,7 +299,55 @@ where
 ;
 
 
-#4 - вариант с аналитической функцией
+#4 - вариант с аналитической функцией. Вывести для каждого актера только один фильм, посмотренный последним
+select  
+	actor_id1, 
+	actor_first_name,
+	actor_last_name,
+	film_id,
+	film_title,
+	rental_date
+from (
+	with actor_last_views as (
+	select * from (
+		select 
+			a.actor_id as actor_id1, 
+			a.first_name as actor_first_name, 
+			a.last_name as actor_last_name, 
+			fa.film_id, 
+			f.title as film_title,
+			i.inventory_id,
+			r.rental_id,
+			r.rental_date as rental_date,
+			rank() over (partition by a.actor_id order by r.rental_date desc) as rank1
+		from sakila.actor a
+		left outer join sakila.film_actor fa
+			on fa.actor_id = a.actor_id
+		left outer join sakila.film f
+			on f.film_id = fa.film_id
+		left outer join sakila.inventory i
+			on i.film_id = fa.film_id
+		left outer join sakila.rental r
+			on r.inventory_id = i.inventory_id
+	) as result1	
+	where rank1 <= 1
+	order by actor_id1
+	)
+	select 
+		actor_id1, 
+		actor_first_name,
+		actor_last_name,
+		film_id,
+		film_title,
+		rental_date,
+		ROW_NUMBER() over (partition by actor_first_name, actor_last_name order by actor_first_name, actor_last_name) as rank2
+	from actor_last_views
+) as actor_last_views_with_rank
+where rank2 <= 1
+;
+
+
+#4 - старый вариант с аналитической функцией
 select * from (
 	select 
 		a.actor_id as actor_id1, 
@@ -327,30 +375,17 @@ order by actor_id1
 
 
 #blog_db - топ 3 статьи с наибольшим количеством лайков по каждому пользователю
-select * from(
+select 
+	*,
+	dense_rank() over (order by post_count desc) as rnk
+from(
 	select 
-		*, 
-		rank() over (partition by user_id order by like_count desc) as rnk
-	from (
-		select DISTINCT 
-			u.id as user_id,
-			u.name as user_name,
-			p.id as post_id,
-			p.title as post_title,
-			(
-				select count(1) 
-				from `like` l2
-				where l2.post_id = l.post_id
-			) as like_count
-		from `user` u
-		left outer join post p
-			on p.author_user_id = u.id
-		left outer join `like` l
-			on l.post_id = p.id
-	) as result
-	order by user_id, like_count desc
-) as result2
-where rnk <= 3
+		u.id, 
+		u.name,
+		(select count(1) from blog_db.post p where p.author_user_id = u.id) as post_count
+	from blog_db.`user` u
+) as results1
+limit 3
 ;
 
 
