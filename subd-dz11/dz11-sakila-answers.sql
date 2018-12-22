@@ -8,8 +8,10 @@
 #названия фильма 2 строки назад
 #Для этой задачи не обязательно писать аналог без функций
 
-#исправление по замечанию: 
+#замечание: 
 #Все хорошо, но (select count(1) from sakila.film) надо тоже через аналитическую функцию
+
+#исправленный вариант:
 select 
 	rank1, 
 	LAST_VALUE(rank1) over w as count_rank,
@@ -47,6 +49,9 @@ from (
 #сделайте группы фильмов для Василия чтобы в каждой группе были разные жанры и фильмы сначала были с низким рейтингом, а затем с более высоким
 #В результатах должен быть номер группы, ид фильма, название, и ид категории (жанра).
 
+#замечание:
+#Сортировка должна быть не по film.id внутри окна
+
 #доработанный запрос по замечаниям:
 select 
 	ntile(50) over (order by f.rating desc) group_id,
@@ -55,10 +60,10 @@ select
 	f.rating, 
 	fc.category_id, 
 	c.name category_name
-from film f
-inner join film_category fc 
+from sakila.film f
+inner join sakila.film_category fc 
 	on fc.film_id = f.film_id
-inner join category c
+inner join sakila.category c
 	on c.category_id = fc.category_id
 order by group_id, f.rating desc
 ;
@@ -67,49 +72,111 @@ order by group_id, f.rating desc
 #3.По каждому работнику проката выведете последнего клиента, которому сотрудник сдал что-то в прокат
 #В результатах должны быть ид и фамилия сотрудника, ид и фамилия клиента, дата аренды
 #Для этого задания нужно написать 2 варианта получения таких данных - с аналитической функцией и без нее. 
-# - вариант без аналитической функции
+
+#замечание:
+#Попробуйте переделать так, чтобы для одного работника был только один клиент.
+
+#3 версия без аналитической функции - новый вариант #1 (на одного сотрудника отображать только одного последнего клиента)
 select 
 	s.staff_id as staff_id, 
 	s.last_name staff_last_name,
-	r.customer_id as customer_id,
-	c.last_name customer_last_name,
-	r.rental_id,
-	r.rental_date
+	(
+		select distinct r4.rental_date 
+		from sakila.rental r4 
+		where r4.staff_id=s.staff_id
+		order by rental_date desc
+		limit 1
+	) as last_rent_time,
+	(
+		select r6.customer_id 
+		from sakila.rental r6 
+		where r6.staff_id=s.staff_id and r6.rental_date = last_rent_time
+		order by rental_date desc, r6.customer_id
+		limit 1
+	) as r6_customer_id,
+	(
+		select c.last_name 
+		from sakila.customer c 
+		where c.customer_id = r6_customer_id
+		limit 1
+	) as customer_last_name
 from sakila.staff s
-inner join sakila.rental r
-	on 
-		r.staff_id = s.staff_id
-		and r.rental_date = (
+order by s.staff_id
+;
+
+
+#3 версия без аналитической функции - новый вариант #2 (на одного сотрудника отображать только одного последнего клиента)
+select 
+	staff_id,
+	staff_last_name,
+	last_rent_time,
+	r6_customer_id,
+	c.last_name customer_last_name
+from (
+	select 
+		s.staff_id as staff_id, 
+		s.last_name staff_last_name,
+		(
 			select distinct r4.rental_date 
 			from sakila.rental r4 
 			where r4.staff_id=s.staff_id
 			order by rental_date desc
 			limit 1
-		) 
+		) as last_rent_time,
+		(
+			select r6.customer_id 
+			from sakila.rental r6 
+			where r6.staff_id=s.staff_id and r6.rental_date = last_rent_time
+			order by rental_date desc, r6.customer_id
+			limit 1
+		) as r6_customer_id
+	from sakila.staff s
+	order by s.staff_id
+) as results
 inner join sakila.customer c 
-	on c.customer_id = r.customer_id
-order by staff_id, customer_id
+	on c.customer_id = r6_customer_id
 ;
 
-# вариант с аналитической функцией
-select * from (
+
+#3 вариант с аналитической функцией. Для каждого сотрудника - только один клиент
+select  
+	staff_recent_customer.staff_id,
+	staff_recent_customer.staff_last_name,
+	staff_recent_customer.rental_date as last_rent_time,
+	staff_recent_customer.customer_id r6_customer_id,
+	staff_recent_customer.customer_last_name
+from(
+	with staff_recent_customers as (
+		select * from (
+			select 
+				s.staff_id as staff_id, 
+				s.last_name staff_last_name,
+				r.customer_id as customer_id,
+				c.last_name customer_last_name,
+				r.rental_id,
+				r.rental_date,
+				rank() over (order by r.rental_date desc) as rank1
+			from sakila.staff s
+			inner join sakila.rental r
+				on 
+					r.staff_id = s.staff_id
+			inner join sakila.customer c 
+				on c.customer_id = r.customer_id
+			) as results
+		where rank1 <= 1
+		order by staff_id, customer_id
+	)
 	select 
-		s.staff_id as staff_id, 
-		s.last_name staff_last_name,
-		r.customer_id as customer_id,
-		c.last_name customer_last_name,
-		r.rental_id,
-		r.rental_date,
-		rank() over (order by r.rental_date desc) as rank1
-	from sakila.staff s
-	inner join sakila.rental r
-		on 
-			r.staff_id = s.staff_id
-	inner join sakila.customer c 
-		on c.customer_id = r.customer_id
-	) as results
-where rank1 <= 1
-order by staff_id, customer_id
+		staff_id,
+		staff_last_name,
+		customer_id,
+		customer_last_name,
+		rental_id,
+		rental_date,
+		ROW_NUMBER() over (PARTITION by staff_last_name order by customer_id) as rank2
+	from staff_recent_customers
+) as staff_recent_customer
+where rank2 <= 1
 ;
 
 
@@ -118,7 +185,12 @@ order by staff_id, customer_id
 #Для этого задания нужно написать 2 варианта получения таких данных - с аналитической функцией и без нее.
 #Данные в обоих запросах (с оконными функциями и без) должны совпадать. 
 
-#4 - вариант без аналитической функции
+#замечания:
+# 1) Попробуйте также вывести один фильм для актера.
+# 2) И в #3 и в #4 вы делаете JOIN всех таблиц внутри подзапроса, а потом фильтруете, где RANK <=1 - это обычно работает медленнее
+
+#исправленные варианты (по замечанию №2 не исправлял)
+#4 - вариант без аналитической функции. Для каждого актера выводится несколько фильмов, у которых одинаковые самые последние даты просмотра
 select 
 	a.actor_id as actor_id1, 
 	a.first_name as actor_first_name, 
@@ -156,8 +228,7 @@ where
 	)
 ;
 
-
-#4 - вариант с аналитической функцией
+#4 - старый вариант с аналитической функцией - Для каждого актера выводится несколько фильмов, у которых одинаковые самые последние даты просмотра
 select * from (
 	select 
 		a.actor_id as actor_id1, 
@@ -170,20 +241,22 @@ select * from (
 		r.rental_date as rental_date,
 		rank() over (partition by a.actor_id order by r.rental_date desc) as rank1
 	from sakila.actor a
-	inner join sakila.film_actor fa
+	left outer join sakila.film_actor fa
 		on fa.actor_id = a.actor_id
-	inner join sakila.film f
+	left outer join sakila.film f
 		on f.film_id = fa.film_id
-	inner join sakila.inventory i
+	left outer join sakila.inventory i
 		on i.film_id = fa.film_id
-	inner join sakila.rental r
+	left outer join sakila.rental r
 		on r.inventory_id = i.inventory_id
 ) as result1	
 where rank1 <= 1
 order by actor_id1
 ;
 
-#4 - вариант с аналитической функцией. Вывести для каждого актера только один фильм, просмотренный последним
+
+#4 - вариант с аналитической функцией. Вывести для каждого актера только один фильм, посмотренный последним
+#(по замечанию №2 не исправлял)
 select  
 	actor_id1, 
 	actor_first_name,
@@ -205,13 +278,13 @@ from (
 			r.rental_date as rental_date,
 			rank() over (partition by a.actor_id order by r.rental_date desc) as rank1
 		from sakila.actor a
-		inner join sakila.film_actor fa
+		left outer join sakila.film_actor fa
 			on fa.actor_id = a.actor_id
-		inner join sakila.film f
+		left outer join sakila.film f
 			on f.film_id = fa.film_id
-		inner join sakila.inventory i
+		left outer join sakila.inventory i
 			on i.film_id = fa.film_id
-		inner join sakila.rental r
+		left outer join sakila.rental r
 			on r.inventory_id = i.inventory_id
 	) as result1	
 	where rank1 <= 1
