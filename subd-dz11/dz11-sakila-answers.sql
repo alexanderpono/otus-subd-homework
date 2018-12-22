@@ -8,21 +8,38 @@
 #названия фильма 2 строки назад
 #Для этой задачи не обязательно писать аналог без функций
 
+#исправление по замечанию: 
+#Все хорошо, но (select count(1) from sakila.film) надо тоже через аналитическую функцию
 select 
-	ROW_NUMBER() over w as rank1, 
-	count(1) over w as count_rank, 
-	sakila.film.film_id as id, 
-	lead(sakila.film.film_id) over w as next_id, 
-	lag(sakila.film.film_id) over w as prev_id, 
-	lag(sakila.film.title, 2) over w as prev_name2, 
-	(title), 
-	(sakila.film.description) as descr, 
-	(sakila.film.release_year) as year,
-	(select count(1) from sakila.film) as count
-from sakila.film 
-window w as (partition by left(title, 1) order by left(title, 1))
-order by sakila.film.film_id
+	rank1, 
+	LAST_VALUE(rank1) over w as count_rank,
+	id,
+	next_id,
+	prev_id,
+	prev_name2,
+	title,
+	descr,
+	year,
+	LAST_VALUE(rank2) over (partition by results.anchor) as count
+from (
+	select 
+		ROW_NUMBER() over w as rank1, 
+		sakila.film.film_id as id, 
+		lead(sakila.film.film_id) over w as next_id, 
+		lag(sakila.film.film_id) over w as prev_id, 
+		lag(sakila.film.title, 2) over w as prev_name2, 
+		(title), 
+		(sakila.film.description) as descr, 
+		(sakila.film.release_year) as year,
+		ROW_NUMBER() over (order by film_id) as rank2,
+		(select 1) as anchor
+	from sakila.film 
+	window w as (partition by left(title, 1) order by left(title, 1))
+	order by sakila.film.film_id
+	) as results
+	window w as (partition by left(title, 1) order by left(title, 1))
 ;
+
 
 
 #2. Вахтер Василий очень любит кино и свою работу, а тут у него оказался под рукой ваш прокат (ну представим что действие разворачивается лет 15-20 назад)
@@ -30,19 +47,20 @@ order by sakila.film.film_id
 #сделайте группы фильмов для Василия чтобы в каждой группе были разные жанры и фильмы сначала были с низким рейтингом, а затем с более высоким
 #В результатах должен быть номер группы, ид фильма, название, и ид категории (жанра).
 
+#доработанный запрос по замечаниям:
 select 
-	ntile(50) over (order by f.film_id) group_id,
+	ntile(50) over (order by f.rating desc) group_id,
 	f.film_id,
 	f.title, 
 	f.rating, 
 	fc.category_id, 
 	c.name category_name
-from sakila.film f
-inner join sakila.film_category fc 
+from film f
+inner join film_category fc 
 	on fc.film_id = f.film_id
-inner join sakila.category c
+inner join category c
 	on c.category_id = fc.category_id
-order by f.film_id
+order by group_id, f.rating desc
 ;
 
 
@@ -152,15 +170,63 @@ select * from (
 		r.rental_date as rental_date,
 		rank() over (partition by a.actor_id order by r.rental_date desc) as rank1
 	from sakila.actor a
-	left outer join sakila.film_actor fa
+	inner join sakila.film_actor fa
 		on fa.actor_id = a.actor_id
-	left outer join sakila.film f
+	inner join sakila.film f
 		on f.film_id = fa.film_id
-	left outer join sakila.inventory i
+	inner join sakila.inventory i
 		on i.film_id = fa.film_id
-	left outer join sakila.rental r
+	inner join sakila.rental r
 		on r.inventory_id = i.inventory_id
 ) as result1	
 where rank1 <= 1
 order by actor_id1
 ;
+
+#4 - вариант с аналитической функцией. Вывести для каждого актера только один фильм, просмотренный последним
+select  
+	actor_id1, 
+	actor_first_name,
+	actor_last_name,
+	film_id,
+	film_title,
+	rental_date
+from (
+	with actor_last_views as (
+	select * from (
+		select 
+			a.actor_id as actor_id1, 
+			a.first_name as actor_first_name, 
+			a.last_name as actor_last_name, 
+			fa.film_id, 
+			f.title as film_title,
+			i.inventory_id,
+			r.rental_id,
+			r.rental_date as rental_date,
+			rank() over (partition by a.actor_id order by r.rental_date desc) as rank1
+		from sakila.actor a
+		inner join sakila.film_actor fa
+			on fa.actor_id = a.actor_id
+		inner join sakila.film f
+			on f.film_id = fa.film_id
+		inner join sakila.inventory i
+			on i.film_id = fa.film_id
+		inner join sakila.rental r
+			on r.inventory_id = i.inventory_id
+	) as result1	
+	where rank1 <= 1
+	order by actor_id1
+	)
+	select 
+		actor_id1, 
+		actor_first_name,
+		actor_last_name,
+		film_id,
+		film_title,
+		rental_date,
+		ROW_NUMBER() over (partition by actor_first_name, actor_last_name order by actor_first_name, actor_last_name) as rank2
+	from actor_last_views
+) as actor_last_views_with_rank
+where rank2 <= 1
+;
+
