@@ -825,3 +825,102 @@ select * from(
 where rnk <= 2 
 ;
 
+#вычисление общего количества записей через оконные функции
+select 
+tbl1.film_id,
+tbl1.title,
+LAST_VALUE(rn) over (partition by tbl1.col1) as count
+from (
+	select 
+		f.film_id, 
+		f.title,
+		ROW_NUMBER() over (order by f.film_id) as rn,
+		(select 1) as col1
+	from sakila.film f
+) as tbl1
+;
+
+#прямой запрос count для вычисления общего количества записей
+select 
+	f.film_id, 
+	f.title,
+	(select count(1) from sakila.film) as count
+from sakila.film f
+window w as (order by f.film_id)
+;
+
+
+
+LAST_VALUE(rn) over (partition by tbl1.col1) as lv2
+
+
+		(select count(1) from sakila.film) as count,
+window w2 as (partition by tbl1.col1 order by tbl1.film_id)
+
+
+
+#сложный запрос с вычисление количества записей в лоб
+select 
+	rank1, 
+	LAST_VALUE(rank1) over w as count_rank,
+	id,
+	next_id,
+	prev_id,
+	prev_name2,
+	title,
+	descr,
+	year,
+	count,
+	LAST_VALUE(rank2) over (partition by results.anchor) as count2
+from (
+	select 
+		ROW_NUMBER() over w as rank1, 
+		sakila.film.film_id as id, 
+		lead(sakila.film.film_id) over w as next_id, 
+		lag(sakila.film.film_id) over w as prev_id, 
+		lag(sakila.film.title, 2) over w as prev_name2, 
+		(title), 
+		(sakila.film.description) as descr, 
+		(sakila.film.release_year) as year,
+		(select count(1) from sakila.film) as count,
+		ROW_NUMBER() over (order by film_id) as rank2,
+		(select 1) as anchor
+	from sakila.film 
+	window w as (partition by left(title, 1) order by left(title, 1))
+	order by sakila.film.film_id
+	) as results
+	window w as (partition by left(title, 1) order by left(title, 1))
+;
+
+
+#сложный запрос с вычислением количества записей при помощи оконных функций
+select 
+	rank1, 
+	LAST_VALUE(rank1) over w as count_rank,
+	id,
+	next_id,
+	prev_id,
+	prev_name2,
+	title,
+	descr,
+	year,
+	LAST_VALUE(rank2) over (partition by results.anchor) as count
+from (
+	select 
+		ROW_NUMBER() over w as rank1, 
+		sakila.film.film_id as id, 
+		lead(sakila.film.film_id) over w as next_id, 
+		lag(sakila.film.film_id) over w as prev_id, 
+		lag(sakila.film.title, 2) over w as prev_name2, 
+		(title), 
+		(sakila.film.description) as descr, 
+		(sakila.film.release_year) as year,
+		ROW_NUMBER() over (order by film_id) as rank2,
+		(select 1) as anchor
+	from sakila.film
+	window w as (partition by left(title, 1) order by left(title, 1))
+	order by sakila.film.film_id
+	) as results
+	window w as (partition by left(title, 1) order by left(title, 1))
+;
+ 

@@ -8,6 +8,8 @@
 #названия фильма 2 строки назад
 #Для этой задачи не обязательно писать аналог без функций
 
+#исправление по замечанию: 
+#Все хорошо, но (select count(1) from sakila.film) надо тоже через аналитическую функцию
 select 
 	rank1, 
 	LAST_VALUE(rank1) over w as count_rank,
@@ -18,7 +20,7 @@ select
 	title,
 	descr,
 	year,
-	count
+	LAST_VALUE(rank2) over (partition by results.anchor) as count
 from (
 	select 
 		ROW_NUMBER() over w as rank1, 
@@ -29,13 +31,15 @@ from (
 		(title), 
 		(sakila.film.description) as descr, 
 		(sakila.film.release_year) as year,
-		(select count(1) from sakila.film) as count
+		ROW_NUMBER() over (order by film_id) as rank2,
+		(select 1) as anchor
 	from sakila.film 
 	window w as (partition by left(title, 1) order by left(title, 1))
 	order by sakila.film.film_id
 	) as results
 	window w as (partition by left(title, 1) order by left(title, 1))
 ;
+
 
 
 #2. Вахтер Василий очень любит кино и свою работу, а тут у него оказался под рукой ваш прокат (ну представим что действие разворачивается лет 15-20 назад)
@@ -166,13 +170,13 @@ select * from (
 		r.rental_date as rental_date,
 		rank() over (partition by a.actor_id order by r.rental_date desc) as rank1
 	from sakila.actor a
-	left outer join sakila.film_actor fa
+	inner join sakila.film_actor fa
 		on fa.actor_id = a.actor_id
-	left outer join sakila.film f
+	inner join sakila.film f
 		on f.film_id = fa.film_id
-	left outer join sakila.inventory i
+	inner join sakila.inventory i
 		on i.film_id = fa.film_id
-	left outer join sakila.rental r
+	inner join sakila.rental r
 		on r.inventory_id = i.inventory_id
 ) as result1	
 where rank1 <= 1
