@@ -90,10 +90,14 @@ Vagrant.configure("2") do |config|
      echo "creating user 'root'@'%'..."
      mysql -u root -proot <<< "SOURCE /vagrant/init-user.sql"
 
+     echo "creating sakila schema..."
+     mysql -u root -proot <<< "SOURCE /vagrant/sakila-schema.sql"
+
+     echo "creating sakila data..."
+     mysql -u root -proot <<< "SOURCE /vagrant/sakila-data.sql"
+
      echo "creating blog db structure & data ..."
-     mysql -u root -proot <<< "SOURCE /vagrant/blog_db-schema.sql"
-     mysql -u root -proot <<< "SOURCE /vagrant/blog_db-data.sql"
-     mysql -u root -proot <<< "SOURCE /vagrant/blog_db-procedures.sql"
+     mysql -u root -proot <<< "SOURCE /vagrant/init-db.sql"
 
   SHELL
 end
