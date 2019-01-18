@@ -25,7 +25,12 @@ END $$
 
 
 CREATE PROCEDURE blog_db.del_from_post (IN post_id INT) 
-BEGIN 
+BEGIN
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  	BEGIN
+		ROLLBACK;
+  	END;
+  
     START TRANSACTION;
         UPDATE blog_db.picture SET deleted = '1' WHERE `post_id` = post_id;
         UPDATE blog_db.user_viewed_post SET deleted = '1' WHERE `post_id` = post_id;
@@ -50,6 +55,10 @@ END $$
 
 CREATE PROCEDURE blog_db.user_viewed_post (IN user_id INT, IN post_id INT) 
 BEGIN
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  	BEGIN
+		ROLLBACK;
+  	END;
 
 	START TRANSACTION;
 	    INSERT INTO blog_db.user_viewed_post(`post_id`, `user_id`, views_no, last_view_dt)
@@ -82,6 +91,11 @@ BEGIN
 		from blog_db.post p
 	;
 	DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET DONE = 1;
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  	BEGIN
+		ROLLBACK;
+  	END;
+  
 
     START TRANSACTION;
 
@@ -105,6 +119,11 @@ END $$
 CREATE PROCEDURE blog_db.user_likes_post (IN user_id INT, IN post_id INT) 
 BEGIN
 	DECLARE already_likes INT;
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  	BEGIN
+		ROLLBACK;
+  	END;
+  
 	
 	select 1  
 	where exists(
@@ -133,6 +152,11 @@ END $$
 CREATE PROCEDURE blog_db.user_unlikes_post (IN user_id1 INT, IN post_id1 INT) 
 BEGIN
 	DECLARE already_likes INT;
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  	BEGIN
+		ROLLBACK;
+  	END;
+  
 	
 	select 1  
 	where exists(
